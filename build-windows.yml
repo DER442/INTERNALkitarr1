@@ -1,0 +1,43 @@
+name: Build Windows app
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: List the repository files
+        shell: pwsh
+        run: Get-ChildItem -Name
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build tools
+        run: python -m pip install --upgrade pip pyinstaller
+
+      - name: Install libraries
+        run: python -m pip install numpy sounddevice
+
+      - name: Check the libraries load
+        run: python -c "import numpy, sounddevice; print('libraries ok', numpy.__version__)"
+
+      - name: Check the program files compile
+        run: python -m compileall -q arranger_app.py sty_play.py sty_parse.py multipad.py effects.py drum_ui.py ncw2wav.py drum_engine
+
+      - name: Build the app
+        run: python -m PyInstaller --noconfirm --onedir --name DX-Arranger --hidden-import drum_ui --hidden-import drum_engine --hidden-import drum_engine.manager --hidden-import drum_engine.output_options --hidden-import drum_engine.sampler --hidden-import drum_engine.formats --hidden-import drum_engine.ncw --hidden-import drum_engine.drummap --hidden-import drum_engine.folders --hidden-import drum_engine.compat --collect-all sounddevice arranger_app.py
+
+      - name: Add the panel, helper files and readme
+        shell: pwsh
+        run: |
+          Copy-Item dxarrangernew1.html, index.html, bridge.js, ncw2wav.py, Start-DX-Arranger.bat, Start-for-phone.bat, README-WINDOWS.txt, DRUM-ENGINE-README.txt dist/DX-Arranger/
+          Compress-Archive -Path dist/DX-Arranger -DestinationPath DX-Arranger-Windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DX-Arranger-Windows
+          path: DX-Arranger-Windows.zip

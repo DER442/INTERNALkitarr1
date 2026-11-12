@@ -1,0 +1,2483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Control Panel</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap">
+<style>
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a1e;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    overflow: hidden;
+  }
+
+  body.welcome-active .bulb {
+    background: #3a3a40 !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+
+  body.welcome-active .btn {
+    opacity: 0.42;
+    filter: grayscale(1);
+  }
+
+  .dx-welcome {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    color: var(--ok);
+    font-family: 'JetBrains Mono','Fira Code','SF Mono',Consolas,Menlo,'Courier New',monospace;
+    transition: opacity 0.45s ease;
+  }
+
+  .dx-welcome.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .dx-logo {
+    position: relative;
+    color: var(--sel-fg);
+    font-size: clamp(72px, 16vw, 150px);
+    font-weight: 800;
+    letter-spacing: 6px;
+    line-height: 1;
+    text-shadow: 0 0 14px var(--glow);
+  }
+
+  .dx-logo::before {
+    content: '_';
+    position: absolute;
+    left: 100%;
+    bottom: 0;
+    color: var(--ok);
+    animation: dx-blink 1s steps(1) infinite;
+  }
+
+  .dx-logo::after {
+    content: var(--boot);
+    position: absolute;
+    left: 50%;
+    bottom: -30px;
+    transform: translateX(-50%);
+    width: max-content;
+    color: var(--ok);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 1px;
+    text-shadow: none;
+  }
+
+  @keyframes dx-blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+
+  .device {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    position: relative;
+  }
+
+  .tempo-guide {
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .tempo-guide-horizontal {
+    height: 0;
+    border-top: 1px dotted rgba(255,255,255,0.9);
+  }
+
+  .tempo-guide-vertical {
+    width: 0;
+    border-left: 1px dotted rgba(255,255,255,0.9);
+  }
+
+  .screen-row,
+  .grid-row-wrapper,
+  .device > .panel {
+    position: relative;
+    z-index: 1;
+  }
+
+  .page-bounds {
+    position: absolute;
+    border: 1px dashed #ffffff;
+    pointer-events: none;
+    z-index: 999;
+    box-sizing: border-box;
+  }
+
+  .page-master-btn {
+    position: fixed !important;
+    top: 16px !important;
+    left: 84px !important;
+    width: 140px !important;
+    height: 60px !important;
+    z-index: 1000;
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding-bottom: 0;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .page-efx-btn {
+    position: fixed !important;
+    top: 16px !important;
+    right: 56px !important;
+    width: 140px !important;
+    height: 60px !important;
+    z-index: 1000;
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding-bottom: 0;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .screen-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .side-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .btn.small {
+    width: 44px;
+    height: 25px;
+    font-size: 12px;
+    padding-bottom: 0;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn.small .bulb {
+    top: 0px;
+    width: 15px;
+    height: 3px;
+  }
+
+  .screen-frame {
+    background: linear-gradient(#2a2a2e, #141416);
+    border: 1px solid #000;
+    border-radius: 0px;
+    padding: 14px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 10px rgba(0,0,0,0.5);
+    width: 720px;
+    aspect-ratio: 16 / 9;
+    box-sizing: border-box;
+    display: flex;
+  }
+
+  .screen {
+    background: #050507;
+    border-radius: 4px;
+    padding: 10px;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    width: 100%;
+  }
+
+  .screen-main {
+    /* LCD theme variables (Dev Dark defaults; themes override these from JS) */
+    --bg: #0d1117; --bg2: #161b22; --line: #30363d; --ln: #484f58;
+    --fg: #c9d1d9; --dim: #6e7681; --opt: #a5d6ff;
+    --sel-fg: #e6edf3; --sel-bg: rgba(56,139,253,0.16); --sel-bar: #58a6ff;
+    --kw: #ff7b72; --fn: #d2a8ff; --pn: #8b949e; --ok: #3fb950;
+    --mode-bg: #238636; --mode-fg: #ffffff; --end-bg: #1f6feb; --end-fg: #ffffff;
+    --val: #79c0ff; --scan: rgba(255,255,255,0.035); --glow: rgba(63,185,80,0.55);
+    --cursor: #58a6ff; --d1: #ff5f56; --d2: #ffbd2e; --d3: #27c93f;
+    --title: 'dx-arranger — zsh — 80x24';
+    --boot: '$ boot --mode "DIGITAL EXPERIENCE"';
+    --ps: '~/dx-arranger $';
+
+    background: var(--bg);
+    border-radius: 3px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 0 0 1px var(--line), inset 0 0 40px rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fg);
+    font-family: 'JetBrains Mono','Fira Code','SF Mono',Consolas,Menlo,'Courier New',monospace;
+    font-size: 12px;
+    letter-spacing: 0;
+    text-align: start;
+  }
+
+  /* faint CRT scanlines over the whole display */
+  .screen-main::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    pointer-events: none;
+    background: repeating-linear-gradient(to bottom, var(--scan) 0, var(--scan) 1px, transparent 1px, transparent 3px);
+  }
+
+  .lcd-menu {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    color: var(--fg);
+    font-size: 13px;
+    letter-spacing: 0;
+    text-align: start;
+  }
+
+  .lcd-menu.visible {
+    display: flex;
+  }
+
+  /* ---------- root menu: IDE window ---------- */
+  .lcd-menu.windows-desktop {
+    position: absolute;
+    inset: 0;
+    justify-content: space-between;
+    background: var(--bg);
+  }
+
+  .lcd-menu.windows-desktop::before {
+    content: var(--title);
+    display: block;
+    padding: 6px 12px 6px 62px;
+    background:
+      radial-gradient(circle at 16px 50%, var(--d1) 0 5px, transparent 5.5px),
+      radial-gradient(circle at 34px 50%, var(--d2) 0 5px, transparent 5.5px),
+      radial-gradient(circle at 52px 50%, var(--d3) 0 5px, transparent 5.5px),
+      var(--bg2);
+    border-bottom: 1px solid var(--line);
+    color: var(--dim);
+    font-size: 10px;
+  }
+
+  .lcd-desktop-icons {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0;
+    width: 100%;
+    padding: 14px 0 0;
+  }
+
+  .lcd-desktop-icons::before {
+    content: '// select a module, use the arrows to navigate, ENTER to run';
+    padding: 0 12px 10px 52px;
+    color: var(--dim);
+    font-size: 11px;
+    font-style: italic;
+  }
+
+  .lcd-desktop-icon {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    width: 100%;
+    min-height: 28px;
+    padding: 0 12px;
+    border: 0;
+    border-left: 2px solid transparent;
+    background: transparent;
+    color: var(--fg);
+    font: inherit;
+    font-size: 13px;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .lcd-desktop-icon::before {
+    display: none;
+  }
+
+  .lcd-desktop-icon .ln {
+    width: 26px;
+    color: var(--ln);
+    text-align: right;
+  }
+
+  .lcd-desktop-icon .fn { text-transform: lowercase; }
+  .lcd-desktop-icon .kw { color: var(--kw); }
+  .lcd-desktop-icon .fn { color: var(--fn); }
+  .lcd-desktop-icon .pn { color: var(--pn); }
+
+  .lcd-desktop-icon.selected,
+  .lcd-desktop-icon:focus-visible {
+    border-left-color: var(--sel-bar);
+    background: var(--sel-bg);
+    outline: none;
+  }
+
+  .lcd-desktop-icon.selected .ln {
+    color: var(--sel-fg);
+  }
+
+  .lcd-desktop-icon.selected::after {
+    content: '';
+    width: 8px;
+    height: 15px;
+    background: var(--cursor);
+    animation: dx-blink 1s steps(1) infinite;
+  }
+
+  /* ---------- status bar ---------- */
+  .lcd-desktop-taskbar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    background: var(--bg2);
+    border-top: 1px solid var(--line);
+    font-size: 10px;
+    color: var(--dim);
+  }
+
+  .lcd-start-button {
+    border: 0;
+    background: var(--mode-bg);
+    color: var(--mode-fg);
+    padding: 4px 10px;
+    font: inherit;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  .lcd-taskbar-window {
+    padding: 4px 10px;
+    color: var(--dim);
+  }
+
+  .lcd-taskbar-window + span {
+    margin-left: auto;
+    padding: 4px 10px;
+    background: var(--end-bg);
+    color: var(--end-fg);
+  }
+
+  /* ---------- sub menus: terminal listing ---------- */
+  .lcd-option {
+    padding: 3px 8px;
+    flex-shrink: 0;
+  }
+
+  .lcd-menu.windows-desktop .lcd-option {
+    display: none;
+  }
+
+  .lcd-menu:not(.windows-desktop) {
+    position: absolute;
+    inset: 0;
+    padding: 14px 18px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    counter-reset: ln;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .lcd-menu:not(.windows-desktop)::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lcd-menu:not(.windows-desktop)::before {
+    content: var(--ps) ' ls ' attr(data-page) '/';
+    align-self: stretch;
+    flex-shrink: 0;
+    color: var(--ok);
+    font-size: 11px;
+    padding-bottom: 8px;
+    margin-bottom: 6px;
+    border-bottom: 1px dashed var(--line);
+  }
+
+  .lcd-menu:not(.windows-desktop) .lcd-option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 5px 10px 5px 8px;
+    border-left: 2px solid transparent;
+    color: var(--opt);
+    font-size: 13px;
+    text-transform: lowercase;
+    cursor: pointer;
+  }
+
+  .lcd-menu:not(.windows-desktop) .lcd-option::before {
+    counter-increment: ln;
+    content: counter(ln);
+    min-width: 24px;
+    color: var(--ln);
+    text-align: right;
+  }
+
+  .lcd-menu:not(.windows-desktop) .lcd-option::after {
+    content: '/';
+    margin-left: -12px;
+    color: var(--dim);
+  }
+
+  .lcd-menu[data-page="themes"] .lcd-option::after,
+  .lcd-menu[data-page="languages"] .lcd-option::after {
+    display: none;
+  }
+
+  .lcd-menu[data-page="languages"] .lcd-option {
+    text-transform: none;
+  }
+
+  .lcd-menu:not(.windows-desktop) .lcd-option.selected {
+    color: var(--sel-fg);
+    background: var(--sel-bg);
+    border-left-color: var(--sel-bar);
+  }
+
+  .lcd-option .act {
+    color: var(--ok);
+  }
+
+  .lcd-option .sw {
+    display: flex;
+    gap: 3px;
+    margin-left: auto;
+  }
+
+  .lcd-option .sw i {
+    display: block;
+    width: 10px;
+    height: 10px;
+    border: 1px solid rgba(128,128,128,0.55);
+  }
+
+  /* ---------- file browser: file tree ---------- */
+  .lcd-files {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    width: 94%;
+    color: var(--fg);
+    letter-spacing: 0;
+  }
+
+  .lcd-files.visible {
+    display: flex;
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    padding: 10px 14px;
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--line);
+  }
+
+  .lcd-files-status {
+    color: var(--dim);
+    font-size: 11px;
+    letter-spacing: 0;
+    text-align: start;
+    font-style: italic;
+  }
+
+  .lcd-files-status::before {
+    content: '// ';
+  }
+
+  .lcd-file-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(7, 32px);
+    grid-auto-flow: row;
+    gap: 0;
+  }
+
+  .lcd-file {
+    position: relative;
+    min-width: 0;
+    padding: 5px 7px 5px 9px;
+    border: 0;
+    border-left: 2px solid transparent;
+    border-radius: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 12px;
+    color: var(--opt);
+    text-transform: lowercase;
+  }
+
+  .lcd-file::before {
+    content: '\25b8  ';
+    color: var(--ln);
+  }
+
+  .lcd-file.selected {
+    color: var(--sel-fg);
+    border-left-color: var(--sel-bar);
+    background: var(--sel-bg);
+  }
+
+  .lcd-file.selected::before {
+    color: var(--sel-bar);
+  }
+
+  .lcd-page-list {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(24px, 1fr));
+    gap: 2px;
+    padding-right: 2px;
+  }
+
+  .lcd-page {
+    padding: 3px 0;
+    border: 0;
+    border-top: 2px solid transparent;
+    background: var(--bg2);
+    color: var(--dim);
+    font-size: 10px;
+    text-align: center;
+  }
+
+  .lcd-page.selected {
+    border-top-color: var(--sel-bar);
+    background: var(--bg);
+    color: var(--sel-fg);
+  }
+
+  /* ---------- tempo / volume popup: terminal dialog ---------- */
+  .lcd-tempo {
+    display: none;
+    position: absolute;
+    z-index: 2;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 260px;
+    padding: 14px 22px;
+    background: var(--bg2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--ok);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+    color: var(--dim);
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .lcd-tempo.visible {
+    display: flex;
+  }
+
+  .lcd-tempo > span:first-child::before {
+    content: '$ set ';
+    color: var(--ok);
+  }
+
+  .lcd-tempo-value {
+    color: var(--val);
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  .lcd-tempo-hint {
+    color: var(--dim);
+    font-size: 10px;
+    font-style: italic;
+    letter-spacing: 0;
+    text-transform: lowercase;
+  }
+
+  .lcd-tempo-hint::before {
+    content: '// ';
+  }
+
+  .lcd-file { cursor: pointer; }
+  .lcd-file.empty:not(.selected) { opacity: 0.55; }
+  .lcd-file.loaded::before { content: '\25cf  '; color: var(--ok); }
+
+  .lcd-import {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.5);
+  }
+
+  .lcd-import.visible { display: flex; }
+
+  .lcd-import-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 280px;
+    padding: 14px 22px;
+    background: var(--bg2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--ok);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+    color: var(--fg);
+    font-size: 12px;
+  }
+
+  .lcd-import-title { color: var(--val); font-size: 15px; font-weight: 600; }
+  .lcd-import-title::before { content: '$ import '; color: var(--ok); font-weight: 400; }
+  .lcd-import-text { color: var(--fg); }
+  .lcd-import-keys { color: var(--dim); font-size: 10px; font-style: italic; }
+  .lcd-import-keys b { color: var(--sel-fg); font-style: normal; }
+
+  /* =====================================================
+     THEME: CLASSIC BLUE  (the original LCD look)
+     ===================================================== */
+  .screen-main[data-mode="classic"] {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    letter-spacing: 2px;
+    text-align: center;
+    color: rgba(255,255,255,0.35);
+    background: #000;
+  }
+
+  .screen-main[data-mode="classic"] .dx-welcome {
+    background: radial-gradient(circle at center, #173d63 0, #081522 48%, #020508 100%);
+    color: #dff1ff;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+
+  .screen-main[data-mode="classic"] .dx-logo {
+    color: #fff;
+    font-size: clamp(72px, 16vw, 180px);
+    font-weight: 900;
+    letter-spacing: 10px;
+    text-shadow: 0 0 8px #6fc3ff, 0 0 26px rgba(74,163,255,0.9);
+  }
+
+  .screen-main[data-mode="classic"] .dx-logo::before {
+    display: none;
+  }
+
+  .screen-main[data-mode="classic"] .dx-logo::after {
+    content: 'DIGITAL EXPERIENCE';
+    bottom: -24px;
+    color: #8dcfff;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 4px;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-menu {
+    color: #d8dade;
+    font-size: 18px;
+    letter-spacing: 2px;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-menu.windows-desktop {
+    padding: 12px;
+    background: linear-gradient(145deg, #12395f, #071728 72%);
+    color: #e8f2ff;
+    letter-spacing: 0;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-menu.windows-desktop::before,
+  .screen-main[data-mode="classic"] .lcd-desktop-icons::before,
+  .screen-main[data-mode="classic"] .lcd-desktop-icon .ln,
+  .screen-main[data-mode="classic"] .lcd-desktop-icon .kw,
+  .screen-main[data-mode="classic"] .lcd-desktop-icon .pn,
+  .screen-main[data-mode="classic"] .lcd-desktop-icon.selected::after {
+    display: none;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-desktop-icons {
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-desktop-icon {
+    justify-content: center;
+    width: min(260px, 88%);
+    min-height: 28px;
+    padding: 4px 10px;
+    border: 1px solid #74b9ed;
+    background: rgba(7, 23, 40, 0.82);
+    color: #e8f2ff;
+    font-size: 9px;
+    text-align: center;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-desktop-icon .fn {
+    color: inherit;
+    text-transform: uppercase;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-desktop-icon.selected,
+  .screen-main[data-mode="classic"] .lcd-desktop-icon:focus-visible {
+    border-color: #dff1ff;
+    background: rgba(91, 168, 237, 0.45);
+  }
+
+  .screen-main[data-mode="classic"] .lcd-desktop-taskbar {
+    gap: 8px;
+    margin: auto -12px -12px;
+    padding: 5px 8px;
+    background: rgba(7, 19, 33, 0.9);
+    border-top: 1px solid rgba(169, 213, 255, 0.4);
+    font-size: 9px;
+    color: #e8f2ff;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-start-button {
+    border: 1px solid #5aa9ec;
+    background: #1c5d91;
+    color: #fff;
+    padding: 4px 8px;
+    font-size: 9px;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-taskbar-window {
+    padding: 4px 8px;
+    color: #b9dcfa;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-taskbar-window + span {
+    margin-left: 0;
+    padding: 0;
+    background: none;
+    color: inherit;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-menu:not(.windows-desktop) {
+    padding: 16px 24px;
+    background:
+      linear-gradient(rgba(25, 70, 108, 0.22) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(25, 70, 108, 0.22) 1px, transparent 1px),
+      linear-gradient(145deg, #0d263f, #070b12 78%);
+    background-size: 18px 18px, 18px 18px, auto;
+    border: 1px solid #28557c;
+    box-shadow: inset 0 0 24px rgba(24, 109, 176, 0.18);
+  }
+
+  .screen-main[data-mode="classic"] .lcd-menu:not(.windows-desktop)::before {
+    content: 'CONTROL PANEL / LCD OS';
+    color: #6aa7d8;
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding-bottom: 8px;
+    margin-bottom: 0;
+    border-bottom: 1px solid #28557c;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-menu:not(.windows-desktop) .lcd-option {
+    justify-content: space-between;
+    gap: 0;
+    padding: 3px 8px;
+    border: 1px solid #28557c;
+    background: rgba(7, 23, 40, 0.82);
+    color: #d8dade;
+    font-size: 18px;
+    text-transform: none;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-menu[data-page="themes"] .lcd-option {
+    font-size: 13px;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-menu:not(.windows-desktop) .lcd-option::before,
+  .screen-main[data-mode="classic"] .lcd-menu:not(.windows-desktop) .lcd-option::after {
+    display: none;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-menu:not(.windows-desktop) .lcd-option.selected {
+    color: #ffa84a;
+    background: rgba(255, 168, 74, 0.12);
+    border-color: #28557c;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-option .act {
+    color: #ffa84a;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-files {
+    letter-spacing: 1px;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-files.visible {
+    background:
+      linear-gradient(rgba(25, 70, 108, 0.22) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(25, 70, 108, 0.22) 1px, transparent 1px),
+      linear-gradient(145deg, #0d263f, #070b12 78%);
+    background-size: 18px 18px, 18px 18px, auto;
+    border: 1px solid #28557c;
+    box-shadow: inset 0 0 24px rgba(24, 109, 176, 0.18);
+  }
+
+  .screen-main[data-mode="classic"] .lcd-files-status {
+    color: #8b8b93;
+    letter-spacing: 1px;
+    text-align: center;
+    font-style: normal;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-files-status::before {
+    content: '';
+  }
+
+  .screen-main[data-mode="classic"] .lcd-file {
+    border: 1px solid #34343b;
+    border-left: 3px solid #666672;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    color: #d8dade;
+    text-transform: none;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-file::before {
+    content: '\1F4C1  ';
+    color: inherit;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-file.selected {
+    color: #ffa84a;
+    border-color: #ffa84a;
+    border-left-color: #ffca85;
+    background: rgba(255, 168, 74, 0.12);
+  }
+
+  .screen-main[data-mode="classic"] .lcd-page {
+    border: 1px solid #45454d;
+    border-radius: 2px;
+    background: transparent;
+    color: #8b8b93;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-page.selected {
+    border-color: #ffa84a;
+    background: transparent;
+    color: #ffa84a;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-tempo {
+    align-items: center;
+    gap: 10px;
+    padding: 14px 26px;
+    background:
+      linear-gradient(rgba(25, 70, 108, 0.22) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(25, 70, 108, 0.22) 1px, transparent 1px),
+      #0d263f;
+    background-size: 18px 18px, 18px 18px, auto;
+    border: 1px solid #45454d;
+    border-left: 3px solid #ffa84a;
+    color: #d8dade;
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-import-box {
+    background: #0d263f;
+    border: 1px solid #45454d;
+    border-left: 3px solid #ffa84a;
+    letter-spacing: 1px;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-import-title::before { content: ''; }
+  .screen-main[data-mode="classic"] .lcd-import-title { color: #ffa84a; }
+  .screen-main[data-mode="classic"] .lcd-import-keys { font-style: normal; }
+  .screen-main[data-mode="classic"] .lcd-file.loaded::before { content: '\1F4C1  '; }
+
+  .screen-main[data-mode="classic"] .lcd-tempo > span:first-child::before {
+    content: '';
+  }
+
+  .screen-main[data-mode="classic"] .lcd-tempo-value {
+    color: #ffa84a;
+    font-weight: 700;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-tempo-hint {
+    color: #fff;
+    font-style: normal;
+    text-transform: none;
+  }
+
+  .screen-main[data-mode="classic"] .lcd-tempo-hint::before {
+    content: '';
+  }
+
+  .splash-logo {
+    max-width: 55%;
+    max-height: 55%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 6px rgba(255,255,255,0.15));
+    opacity: 1;
+    transition: opacity 1s ease;
+  }
+
+  .splash-logo.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .panel {
+    background: linear-gradient(#232327, #18181b);
+    border: 1px solid #000;
+    border-radius: 10px;
+    padding: 18px 26px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 10px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 14px;
+  }
+
+  .subgroups {
+    display: flex;
+    flex-direction: row;
+    gap: 1px;
+  }
+
+  .divider {
+    align-self: stretch;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, #4a4a52, transparent);
+  }
+
+  .tempo-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 16px;
+  }
+
+  .label {
+    text-align: center;
+    color: #cfd3da;
+    font-size: 15px;
+    letter-spacing: 2px;
+    font-weight: 600;
+    width: 100%;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 2px solid #45454d;
+    white-space: nowrap;
+  }
+
+  .tempo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #9a9aa2;
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+  .tempo input {
+    width: 52px;
+    background: #101012;
+    border: 1px solid #000;
+    border-radius: 4px;
+    color: #d8dade;
+    font-size: 13px;
+    text-align: center;
+    padding: 3px 0;
+  }
+
+  .row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn {
+    width: 44px;
+    height: 70px;
+    border-radius: 4px;
+    border: 1px solid #050505;
+    background: linear-gradient(#48484f, #2c2c31 45%, #232327);
+    box-shadow:
+      inset 0 1px 1px rgba(255,255,255,0.25),
+      inset 0 -1px 0 rgba(0,0,0,0.5),
+      inset -1px 0 1px rgba(0,0,0,0.25),
+      inset 1px 0 1px rgba(255,255,255,0.04),
+      0 1px 0 rgba(255,255,255,0.05),
+      0 3px 4px rgba(0,0,0,0.55),
+      0 5px 8px rgba(0,0,0,0.3);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 10px;
+    transition: transform 0.06s ease, box-shadow 0.06s ease;
+  }
+
+  .btn:active {
+    transform: translateY(2px);
+    box-shadow:
+      inset 0 2px 4px rgba(0,0,0,0.6),
+      inset 0 1px 1px rgba(0,0,0,0.4),
+      0 1px 0 rgba(255,255,255,0.04),
+      0 1px 1px rgba(0,0,0,0.4);
+  }
+
+  .bulb {
+    position: absolute;
+    top: 0px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 25px;
+    height: 8px;
+    border-radius: 0px;
+    background: #3a3a40;
+  }
+
+  /* Bulbs stay dark until their button is clicked */
+  .btn .bulb {
+    background: #3a3a40;
+    box-shadow: none;
+  }
+
+  /* Active / pressed - bright orange glow, blinking on tempo */
+  .btn.active .bulb {
+    background: #4aa3ff;
+    box-shadow: 0 0 12px 4px rgba(74, 163, 255, 0.95);
+    animation: none;
+  }
+
+  @keyframes beat-pulse {
+    0% {
+      box-shadow:
+        0 0 12px 4px rgba(255, 170, 60, 1),
+        0 0 26px 9px rgba(255, 170, 60, 0.7);
+    }
+    20% {
+      box-shadow:
+        0 0 6px 2px rgba(255, 160, 60, 0.55),
+        0 0 12px 4px rgba(255, 160, 60, 0.3);
+    }
+    100% {
+      box-shadow:
+        0 0 6px 2px rgba(255, 160, 60, 0.55),
+        0 0 12px 4px rgba(255, 160, 60, 0.3);
+    }
+  }
+
+  .btn.active {
+    color: #fff;
+    background: linear-gradient(#525259, #34343a);
+  }
+
+  .btn span {
+    pointer-events: none;
+  }
+
+  /* Grey utility buttons (no LED bulb) - narrower, same height */
+  .btn.grey {
+    width: 40px;
+    background: linear-gradient(#54545b, #37373d 45%, #2c2c31);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    padding-bottom: 8px;
+  }
+
+  .btn.grey.active {
+    background: linear-gradient(#74747c, #4d4d54);
+    box-shadow:
+      inset 0 1px 1px rgba(255,255,255,0.3),
+      inset 0 -1px 0 rgba(0,0,0,0.5),
+      0 1px 0 rgba(255,255,255,0.05),
+      0 0 6px 1px rgba(255,255,255,0.15);
+  }
+
+  /* Narrow numbered buttons for Registration Memory row */
+  .btn.narrow {
+    width: 38px;
+  }
+
+  /* Scrolling knob to the right of the LCD */
+  .right-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .dpad-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+  }
+
+  .volume-block {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-65%);
+    margin-top: -40px;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+
+  .nav-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 110px;
+  }
+
+  .dpad-column .label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+
+  .dpad {
+    display: grid;
+    grid-template-columns: 58px 96px 58px;
+    grid-template-rows: 58px 96px 58px;
+    grid-template-areas:
+      ".    up    ."
+      "left enter right"
+      ".    down  .";
+    gap: 8px;
+  }
+
+  .dpad-btn {
+    width: auto;
+    height: auto;
+    padding: 0;
+    font-size: 28px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dpad-enter {
+    font-size: 15px;
+    letter-spacing: 0.5px;
+  }
+
+  .dpad-text {
+    font-size: 10px;
+    letter-spacing: 0.3px;
+    line-height: 1.1;
+    text-align: center;
+    padding: 0 2px;
+  }
+
+  /* Left column: navigation row + mixer rows, stacked, left of LCD */
+  .left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btn.small.round {
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    padding-bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 35% 30%, #58585f, #2c2c31 70%, #222226);
+    box-shadow:
+      inset 0 1px 2px rgba(255,255,255,0.3),
+      inset 0 -2px 3px rgba(0,0,0,0.5),
+      0 1px 0 rgba(255,255,255,0.05),
+      0 3px 5px rgba(0,0,0,0.55);
+  }
+
+  .btn.small.round:active {
+    box-shadow:
+      inset 0 2px 5px rgba(0,0,0,0.7),
+      inset 0 1px 2px rgba(0,0,0,0.4);
+  }
+
+  /* 16-button grid below the LCD screen */
+  .grid-panel {
+    background: linear-gradient(#232327, #18181b);
+    border: 1px solid #000;
+    border-radius: 10px;
+    padding: 12px 16px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 10px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 720px;
+    box-sizing: border-box;
+  }
+
+  .grid-btn-row {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+  }
+
+  .btn.pad {
+    width: auto;
+    height: 46px;
+    font-size: 12px;
+    padding-bottom: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+  }
+
+  .btn.pad.perc {
+    background: linear-gradient(#ffffff, #f2f2f4 45%, #d8d8dc);
+    color: #2a2a2e;
+    border: 1px solid #b8b8bc;
+    box-shadow:
+      inset 0 1px 1px rgba(255,255,255,0.9),
+      inset 0 -2px 2px rgba(0,0,0,0.1),
+      0 1px 0 rgba(255,255,255,0.4),
+      0 3px 4px rgba(0,0,0,0.5);
+  }
+
+  .btn.pad.perc:active {
+    box-shadow:
+      inset 0 2px 4px rgba(0,0,0,0.25),
+      inset 0 1px 1px rgba(0,0,0,0.15);
+  }
+
+  .btn.pad.perc.active {
+    background: linear-gradient(#ffd9a0, #ffb85c 45%, #f79a2e);
+    color: #2a2a2e;
+    box-shadow:
+      inset 0 1px 1px rgba(255,255,255,0.5),
+      inset 0 -2px 2px rgba(0,0,0,0.15),
+      0 1px 0 rgba(255,255,255,0.1),
+      0 2px 4px rgba(0,0,0,0.5);
+  }
+
+  .btn.menu-btn {
+    width: 100%;
+    height: 25px;
+    font-size: 11px;
+    padding-bottom: 0;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+  }
+
+  .btn.small-rect-btn {
+    width: 111px;
+    height: 50px;
+    font-size: 9px;
+    padding-bottom: 0;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .grid-row-wrapper {
+    position: relative;
+  }
+
+  .panel-box {
+    background: linear-gradient(#232327, #18181b);
+    border: 1px solid #000;
+    border-radius: 10px;
+    padding: 12px 16px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 10px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-sizing: border-box;
+    white-space: nowrap;
+  }
+
+  .percussion-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 46px);
+    grid-template-rows: 46px;
+    gap: 8px;
+  }
+
+  .left-side-panels {
+    position: absolute;
+    right: 100%;
+    top: 0;
+    height: 100%;
+    margin-right: 18px;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .right-side-panels {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    height: 100%;
+    margin-left: 18px;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .perc-panel-col {
+    position: relative;
+  }
+
+  .small-menu-panel {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 14px;
+    padding: 6px 10px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tempo-tap-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .tempo-tap-col .label {
+    font-size: 10px;
+    letter-spacing: 1px;
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+
+  .volume-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 52px);
+    grid-template-rows: 50px;
+    gap: 6px;
+  }
+</style>
+</head>
+<body>
+
+<div id="scaler">
+<div class="device">
+
+  <div class="tempo-guide tempo-guide-horizontal" id="tempoGuideHorizontal"></div>
+  <div class="tempo-guide tempo-guide-vertical" id="tempoGuideVertical"></div>
+  <div class="tempo-guide tempo-guide-horizontal" id="masterGuideHorizontal"></div>
+  <div class="tempo-guide tempo-guide-vertical" id="masterGuideVertical"></div>
+  <div class="tempo-guide tempo-guide-horizontal" id="tempoVolumeGuide"></div>
+  <div class="tempo-guide tempo-guide-vertical" id="tempoXVertical"></div>
+  <div class="tempo-guide tempo-guide-horizontal" id="tempoXHorizontal"></div>
+  <div class="tempo-guide tempo-guide-horizontal" id="menuGuideHorizontal"></div>
+  <div class="tempo-guide tempo-guide-vertical" id="menuGuideVertical"></div>
+
+  <div class="screen-row">
+
+    <div class="right-column">
+      <div class="dpad-column">
+        <div class="nav-group">
+          <div class="label">NAVIGATION</div>
+          <div class="dpad" id="dpad2">
+            <button class="btn dpad-btn dpad-left" data-id="NAV2-LEFT" style="grid-area:left"><span>&minus;</span></button>
+            <button class="btn dpad-btn dpad-enter" data-id="NAV2-ENTER" style="grid-area:enter"><span>ENTER</span></button>
+            <button class="btn dpad-btn dpad-right" data-id="NAV2-RIGHT" style="grid-area:right"><span>+</span></button>
+          </div>
+        </div>
+        <div class="volume-block">
+          <div class="label">VOLUME CONTROL</div>
+          <div class="volume-grid" id="volumeKnobs">
+            <button class="btn pad" data-id="VOL-1"><span>x</span></button>
+            <button class="btn pad" data-id="VOL-2"><span>2</span></button>
+            <button class="btn pad" data-id="VOL-3"><span>3</span></button>
+            <button class="btn pad" data-id="VOL-4"><span>4</span></button>
+            <button class="btn pad" data-id="VOL-5"><span>5</span></button>
+            <button class="btn pad" data-id="VOL-6"><span>6</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen-frame">
+      <div class="screen">
+        <div class="screen-main" id="screenMain">
+          <div class="dx-welcome" id="dxWelcome" aria-label="DX welcome page">
+            <div class="dx-logo">DX</div>
+          </div>
+          <div class="lcd-menu" id="lcdMenu" aria-live="polite">
+            <span class="lcd-option selected">STYLES</span>
+            <span class="lcd-option">SETTINGS</span>
+            <span class="lcd-option">EFFECTS</span>
+          </div>
+          <div class="lcd-files" id="lcdFiles" aria-live="polite"></div>
+          <div class="lcd-tempo" id="lcdTempo" aria-live="polite">
+            <span>TEMPO</span>
+            <span class="lcd-tempo-value" id="lcdTempoValue">120 BPM</span>
+            <span class="lcd-tempo-hint">- / + TO CHANGE</span>
+          </div>
+          <div class="lcd-import" id="lcdImport"><div class="lcd-import-box" id="lcdImportBox"></div></div>
+          <input id="styleImportInput" type="file" hidden>
+          <input id="userFolderInput" type="file" webkitdirectory directory multiple hidden>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-column">
+      <div class="dpad-column">
+        <div class="nav-group">
+          <div class="label">NAVIGATION</div>
+          <div class="dpad" id="dpad">
+            <button class="btn dpad-btn dpad-up" data-id="NAV-UP" style="grid-area:up"><span>&#9650;</span></button>
+            <button class="btn dpad-btn dpad-left" data-id="NAV-LEFT" style="grid-area:left"><span>&#9664;</span></button>
+            <button class="btn dpad-btn dpad-enter" data-id="NAV-ENTER" style="grid-area:enter"><span>ENTER</span></button>
+            <button class="btn dpad-btn dpad-right" data-id="NAV-RIGHT" style="grid-area:right"><span>&#9654;</span></button>
+            <button class="btn dpad-btn dpad-down" data-id="NAV-DOWN" style="grid-area:down"><span>&#9660;</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="grid-row-wrapper">
+    <div class="left-side-panels">
+      <div class="panel-box">
+        <div class="tempo-tap-col">
+          <div class="label">TEMPO</div>
+          <button class="btn small round" data-id="TEMPO-TAP"><span>TAP</span></button>
+        </div>
+      </div>
+      <div class="panel-box">
+        <div class="label">PERCUSSION</div>
+        <div class="percussion-grid" id="percussionRow2">
+          <button class="btn pad perc" data-id="PERC2-1"><span>1</span></button>
+          <button class="btn pad perc" data-id="PERC2-2"><span>2</span></button>
+          <button class="btn pad perc" data-id="PERC2-3"><span>3</span></button>
+          <button class="btn pad perc" data-id="PERC2-4"><span>4</span></button>
+          <button class="btn pad perc" data-id="PERC2-5"><span>5</span></button>
+          <button class="btn pad perc" data-id="PERC2-6"><span>6</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-panel">
+      <div class="grid-btn-row" id="gridRow1">
+        <button class="btn pad" data-id="G-1"><span>P1</span></button>
+        <button class="btn pad" data-id="G-2"><span>P2</span></button>
+        <button class="btn pad" data-id="G-3"><span>P3</span></button>
+        <button class="btn pad" data-id="G-4"><span>P4</span></button>
+        <button class="btn pad" data-id="G-5"><span>P5</span></button>
+        <button class="btn pad" data-id="G-6"><span>P6</span></button>
+        <button class="btn pad" data-id="G-7"><span>P7</span></button>
+        <button class="btn pad" data-id="G-8"><span>P8</span></button>
+      </div>
+      <div class="grid-btn-row" id="gridRow2">
+        <button class="btn pad" data-id="G-9"><span>P9</span></button>
+        <button class="btn pad" data-id="G-10"><span>P10</span></button>
+        <button class="btn pad" data-id="G-11"><span>P11</span></button>
+        <button class="btn pad" data-id="G-12"><span>P12</span></button>
+        <button class="btn pad" data-id="G-13"><span>P13</span></button>
+        <button class="btn pad" data-id="G-14"><span>P14</span></button>
+        <button class="btn pad" data-id="G-15"><span>P15</span></button>
+        <button class="btn pad" data-id="G-16"><span>P16</span></button>
+      </div>
+    </div>
+
+    <div class="right-side-panels">
+      <div class="perc-panel-col">
+        <div class="panel-box small-menu-panel">
+          <button class="btn grey small-rect-btn" data-id="PERC-MENU2"><span>MENU</span></button>
+        </div>
+        <div class="panel-box">
+          <button class="btn grey menu-btn" data-id="PERC-MENU"><span>SYNC REC</span></button>
+          <div class="label">PERCUSSION</div>
+          <div class="percussion-grid" id="percussionRow">
+            <button class="btn pad perc" data-id="PERC-1"><span>7</span></button>
+            <button class="btn pad perc" data-id="PERC-2"><span>8</span></button>
+            <button class="btn pad perc" data-id="PERC-3"><span>9</span></button>
+            <button class="btn pad perc" data-id="PERC-4"><span>10</span></button>
+            <button class="btn pad perc" data-id="PERC-5"><span>11</span></button>
+            <button class="btn pad perc" data-id="PERC-6"><span>12</span></button>
+          </div>
+        </div>
+      </div>
+      <div class="panel-box">
+        <div class="tempo-tap-col">
+          <div class="label">MUTE</div>
+          <button class="btn small round" data-id="MUTE-TAP"><span>&#128263;</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+
+  <div class="tempo-col">
+    <div class="label">TEMPO</div>
+    <div class="tempo">
+      <input type="number" id="bpm" value="120" min="20" max="300" step="1">
+      <span>BPM</span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="group">
+    <div class="label">&nbsp;</div>
+    <div class="row" id="cmRow">
+      <button class="btn grey" data-id="CM"><span>C.M</span></button>
+      <button class="btn grey" data-id="AFH"><span>A.FH</span></button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="group">
+    <div class="label">INTRO</div>
+    <div class="row" id="introRow">
+      <button class="btn" data-id="I-A"><div class="bulb"></div><span>A</span></button>
+      <button class="btn" data-id="I-B"><div class="bulb"></div><span>B</span></button>
+      <button class="btn" data-id="I-C"><div class="bulb"></div><span>C</span></button>
+      <button class="btn" data-id="I-D"><div class="bulb"></div><span>D</span></button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="group">
+    <div class="label">MAIN VARIATION</div>
+    <div class="row" id="variationRow">
+      <button class="btn" data-id="V-A"><div class="bulb"></div><span>A</span></button>
+      <button class="btn" data-id="V-B"><div class="bulb"></div><span>B</span></button>
+      <button class="btn" data-id="V-C"><div class="bulb"></div><span>C</span></button>
+      <button class="btn" data-id="V-D"><div class="bulb"></div><span>D</span></button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="group">
+    <div class="subgroups">
+      <div class="group" style="padding:0;">
+        <div class="label">BREAK</div>
+        <div class="row" id="breakRow">
+          <button class="btn" data-id="BR-1"><div class="bulb"></div><span>1</span></button>
+        </div>
+      </div>
+      <div class="group" style="padding:0;">
+        <div class="label">ENDING</div>
+        <div class="row" id="endingRow">
+          <button class="btn" data-id="EN-1"><div class="bulb"></div><span>1</span></button>
+          <button class="btn" data-id="EN-2"><div class="bulb"></div><span>2</span></button>
+          <button class="btn" data-id="EN-3"><div class="bulb"></div><span>3</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
+  <div class="divider"></div>
+
+  <div class="group">
+    <div class="label">SYNCRO</div>
+    <div class="row" id="syncroRow">
+      <button class="btn grey" data-id="SY-1"><span>&#9199;</span></button>
+      <button class="btn grey" data-id="SY-2"><span>&#9632;</span></button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="group">
+    <div class="label">REGISTRATION MEMORY</div>
+    <div class="row" id="regRow">
+      <button class="btn narrow" data-id="R-1"><div class="bulb"></div><span>1</span></button>
+      <button class="btn narrow" data-id="R-2"><div class="bulb"></div><span>2</span></button>
+      <button class="btn narrow" data-id="R-3"><div class="bulb"></div><span>3</span></button>
+      <button class="btn narrow" data-id="R-4"><div class="bulb"></div><span>4</span></button>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="group">
+    <div class="label">PADS</div>
+    <div class="row" id="padRow">
+      <button class="btn" data-id="P-1"><div class="bulb"></div><span>1</span></button>
+      <button class="btn" data-id="P-2"><div class="bulb"></div><span>2</span></button>
+      <button class="btn" data-id="P-3"><div class="bulb"></div><span>3</span></button>
+      <button class="btn" data-id="P-4"><div class="bulb"></div><span>4</span></button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="group">
+    <div class="label">&nbsp;</div>
+    <div class="row" id="stopRow">
+      <button class="btn grey" data-id="STOP"><span>STOP</span></button>
+    </div>
+  </div>
+
+</div>
+
+<div class="page-bounds" id="pageBounds"></div>
+<button class="btn grey page-master-btn" id="pageMasterBtn" data-id="MASTER"><span>MASTER</span></button>
+<button class="btn grey page-efx-btn" id="pageEfxBtn" data-id="EFX"><span>EFX</span></button>
+
+</div>
+
+<script>
+  const scaler = document.getElementById('scaler');
+
+  function fitToViewport() {
+    scaler.style.transform = 'scale(1)';
+    const naturalWidth = scaler.scrollWidth;
+    const naturalHeight = scaler.scrollHeight;
+    const scale = Math.min(
+      window.innerWidth / naturalWidth,
+      window.innerHeight / naturalHeight,
+      1
+    ) * 0.98;
+    scaler.style.transform = 'scale(' + scale + ')';
+  }
+
+  window.addEventListener('resize', fitToViewport);
+  window.addEventListener('load', fitToViewport);
+  fitToViewport();
+
+  // --- DX welcome page: keep all bulbs dark for six seconds ---
+  const dxWelcome = document.getElementById('dxWelcome');
+  document.body.classList.add('welcome-active');
+  setTimeout(() => {
+    document.body.classList.remove('welcome-active');
+    showRootMenu();
+    dxWelcome.classList.add('hidden');
+    setTimeout(() => dxWelcome.remove(), 500);
+  }, 6000);
+
+  document.addEventListener('click', event => {
+    const menuButton = event.target.closest('[data-id="PERC-MENU2"]');
+    if (!menuButton) return;
+
+    showRootMenu();
+  });
+
+  const lcdMenu = document.getElementById('lcdMenu');
+  const lcdFiles = document.getElementById('lcdFiles');
+  const lcdTempo = document.getElementById('lcdTempo');
+  const lcdTempoValue = document.getElementById('lcdTempoValue');
+  const userFolderInput = document.getElementById('userFolderInput');
+  // --- LCD themes ---
+  const screenMain = document.getElementById('screenMain');
+  const lcdThemeStorageKey = 'control-panel-lcd-theme';
+  const lcdQuotedVars = ['title', 'boot', 'ps'];
+  const lcdBaseVars = {
+    bg: '#0d1117', bg2: '#161b22', line: '#30363d', ln: '#484f58', fg: '#c9d1d9', dim: '#6e7681',
+    opt: '#a5d6ff', 'sel-fg': '#e6edf3', 'sel-bg': 'rgba(56,139,253,0.16)', 'sel-bar': '#58a6ff',
+    kw: '#ff7b72', fn: '#d2a8ff', pn: '#8b949e', ok: '#3fb950',
+    'mode-bg': '#238636', 'mode-fg': '#ffffff', 'end-bg': '#1f6feb', 'end-fg': '#ffffff',
+    val: '#79c0ff', scan: 'rgba(255,255,255,0.035)', glow: 'rgba(63,185,80,0.55)', cursor: '#58a6ff',
+    d1: '#ff5f56', d2: '#ffbd2e', d3: '#27c93f',
+    title: 'dx-arranger \u2014 zsh \u2014 80x24', boot: "$ boot --mode 'DIGITAL EXPERIENCE'", ps: '~/dx-arranger $'
+  };
+  const codeTheme = (id, name, start, win, vars) =>
+    ({ id: id, name: name, mode: 'code', start: start, win: win, end: ' BPM \u00b7 UTF-8', vars: vars });
+  const lcdThemes = [
+    { id: 'classic', name: 'CLASSIC BLUE', mode: 'classic', start: 'START', win: 'CONTROL PANEL', end: ' BPM',
+      vars: { bg: '#12395f', kw: '#74b9ed', fn: '#ffa84a', opt: '#dff1ff', scan: 'rgba(0,0,0,0)' } },
+    codeTheme('devdark', 'DEV DARK', 'NORMAL', 'main \u2713  dx-arranger', {}),
+    codeTheme('matrix', 'MATRIX', 'INSERT', 'neo@zion \u2713  tty1', {
+      bg: '#000000', bg2: '#021a06', line: '#0f4d1a', ln: '#1b6b2a', fg: '#00ff41', dim: '#1f8a34', opt: '#39ff14',
+      'sel-fg': '#c8ffd4', 'sel-bg': 'rgba(0,255,65,0.18)', 'sel-bar': '#00ff41', kw: '#00ff41', fn: '#9dffb4', pn: '#1f8a34',
+      ok: '#00ff41', 'mode-bg': '#00b32d', 'mode-fg': '#000000', 'end-bg': '#003d10', 'end-fg': '#00ff41', val: '#00ff41',
+      scan: 'rgba(0,255,65,0.06)', glow: 'rgba(0,255,65,0.75)', cursor: '#00ff41', d1: '#0f4d1a', d2: '#1b6b2a', d3: '#00ff41',
+      title: 'neo@nebuchadnezzar \u2014 tty1', boot: 'Wake up, Neo...', ps: 'neo@matrix:~$' }),
+    codeTheme('amber', 'AMBER CRT', 'READY', 'vt220 \u2713  /dev/tty0', {
+      bg: '#120a00', bg2: '#1f1200', line: '#5a3300', ln: '#7a4a10', fg: '#ffb000', dim: '#a06c1a', opt: '#ffcc55',
+      'sel-fg': '#fff3d1', 'sel-bg': 'rgba(255,176,0,0.18)', 'sel-bar': '#ffb000', kw: '#ff8c1a', fn: '#ffd27a', pn: '#b57a1a',
+      ok: '#ffb000', 'mode-bg': '#cc8800', 'mode-fg': '#120a00', 'end-bg': '#3d2400', 'end-fg': '#ffb000', val: '#ffd27a',
+      scan: 'rgba(255,176,0,0.06)', glow: 'rgba(255,176,0,0.65)', cursor: '#ffb000', d1: '#7a4a10', d2: '#a06c1a', d3: '#ffb000',
+      title: 'VT220 \u2014 /dev/tty0', boot: 'SYSTEM READY_', ps: 'root@vt220:~#' }),
+    codeTheme('dracula', 'DRACULA', 'VISUAL', 'count@castle \u2713  main', {
+      bg: '#282a36', bg2: '#21222c', line: '#44475a', ln: '#6272a4', fg: '#f8f8f2', dim: '#6272a4', opt: '#8be9fd',
+      'sel-fg': '#f8f8f2', 'sel-bg': 'rgba(189,147,249,0.22)', 'sel-bar': '#bd93f9', kw: '#ff79c6', fn: '#50fa7b', pn: '#6272a4',
+      ok: '#50fa7b', 'mode-bg': '#bd93f9', 'mode-fg': '#282a36', 'end-bg': '#44475a', 'end-fg': '#f8f8f2', val: '#f1fa8c',
+      scan: 'rgba(255,255,255,0.025)', glow: 'rgba(189,147,249,0.65)', cursor: '#ff79c6',
+      title: 'count@castle \u2014 zsh', boot: '$ sudo wake --count', ps: 'count@castle:~$' }),
+    codeTheme('synthwave', 'SYNTHWAVE', 'COMMAND', 'outrun \u2713  1984', {
+      bg: '#1a0b2e', bg2: '#241046', line: '#4b2a85', ln: '#6b4aa8', fg: '#f0e6ff', dim: '#8a6fc0', opt: '#36f9f6',
+      'sel-fg': '#ffffff', 'sel-bg': 'rgba(255,45,170,0.24)', 'sel-bar': '#ff2daa', kw: '#ff2daa', fn: '#fede5d', pn: '#8a6fc0',
+      ok: '#36f9f6', 'mode-bg': '#ff2daa', 'mode-fg': '#ffffff', 'end-bg': '#4b2a85', 'end-fg': '#36f9f6', val: '#fede5d',
+      scan: 'rgba(255,45,170,0.07)', glow: 'rgba(255,45,170,0.75)', cursor: '#ff2daa',
+      title: 'outrun@1984 \u2014 fish', boot: '> LOADING 1984...', ps: 'outrun@grid:~>' }),
+    codeTheme('nord', 'NORD', 'NORMAL', 'fjord \u2713  main', {
+      bg: '#2e3440', bg2: '#3b4252', line: '#4c566a', ln: '#616e88', fg: '#d8dee9', dim: '#7b88a1', opt: '#88c0d0',
+      'sel-fg': '#eceff4', 'sel-bg': 'rgba(129,161,193,0.26)', 'sel-bar': '#88c0d0', kw: '#81a1c1', fn: '#b48ead', pn: '#7b88a1',
+      ok: '#a3be8c', 'mode-bg': '#a3be8c', 'mode-fg': '#2e3440', 'end-bg': '#5e81ac', 'end-fg': '#eceff4', val: '#ebcb8b',
+      scan: 'rgba(236,239,244,0.02)', glow: 'rgba(136,192,208,0.5)', cursor: '#88c0d0',
+      title: 'user@fjord \u2014 bash', boot: 'booting from the fjords...', ps: 'user@fjord:~$' }),
+    codeTheme('monokai', 'MONOKAI', 'NORMAL', 'main \u2713  monokai', {
+      bg: '#272822', bg2: '#1e1f1c', line: '#49483e', ln: '#75715e', fg: '#f8f8f2', dim: '#75715e', opt: '#e6db74',
+      'sel-fg': '#f8f8f2', 'sel-bg': 'rgba(166,226,46,0.16)', 'sel-bar': '#a6e22e', kw: '#f92672', fn: '#a6e22e', pn: '#75715e',
+      ok: '#a6e22e', 'mode-bg': '#a6e22e', 'mode-fg': '#272822', 'end-bg': '#66d9ef', 'end-fg': '#272822', val: '#66d9ef',
+      scan: 'rgba(255,255,255,0.025)', glow: 'rgba(166,226,46,0.5)', cursor: '#f92672',
+      title: 'dx \u2014 monokai pro', boot: '$ boot --theme monokai', ps: '~/dx $' }),
+    codeTheme('solarized', 'SOLARIZED LIGHT', 'NORMAL', 'main \u2713  solarized', {
+      bg: '#fdf6e3', bg2: '#eee8d5', line: '#d3cbb7', ln: '#93a1a1', fg: '#586e75', dim: '#93a1a1', opt: '#268bd2',
+      'sel-fg': '#073642', 'sel-bg': 'rgba(38,139,210,0.16)', 'sel-bar': '#268bd2', kw: '#cb4b16', fn: '#6c71c4', pn: '#93a1a1',
+      ok: '#859900', 'mode-bg': '#859900', 'mode-fg': '#fdf6e3', 'end-bg': '#268bd2', 'end-fg': '#fdf6e3', val: '#b58900',
+      scan: 'rgba(0,0,0,0.025)', glow: 'rgba(38,139,210,0.25)', cursor: '#268bd2',
+      title: 'dx-arranger \u2014 solarized light', boot: '$ boot --mode daylight', ps: '~/dx-arranger $' }),
+    codeTheme('gameboy', 'GAMEBOY', 'START', 'DMG-01 \u2713  1989', {
+      bg: '#9bbc0f', bg2: '#8bac0f', line: '#306230', ln: '#306230', fg: '#0f380f', dim: '#306230', opt: '#0f380f',
+      'sel-fg': '#9bbc0f', 'sel-bg': '#0f380f', 'sel-bar': '#0f380f', kw: '#0f380f', fn: '#0f380f', pn: '#306230',
+      ok: '#0f380f', 'mode-bg': '#0f380f', 'mode-fg': '#9bbc0f', 'end-bg': '#306230', 'end-fg': '#9bbc0f', val: '#0f380f',
+      scan: 'rgba(15,56,15,0.09)', glow: 'rgba(15,56,15,0)', cursor: '#0f380f', d1: '#0f380f', d2: '#306230', d3: '#306230',
+      title: 'DOT MATRIX WITH STEREO SOUND', boot: 'DIGITAL EXPERIENCE', ps: 'DMG>' })
+  ];
+  let lcdSavedThemeId = 'devdark';
+  try {
+    const storedTheme = localStorage.getItem(lcdThemeStorageKey);
+    if (storedTheme && lcdThemes.some(theme => theme.id === storedTheme)) lcdSavedThemeId = storedTheme;
+  } catch (error) {
+    // Fall back to the default theme when storage is unavailable.
+  }
+  const getSavedLcdTheme = () => lcdThemes.find(theme => theme.id === lcdSavedThemeId) || lcdThemes[1];
+  let lcdShownTheme = getSavedLcdTheme();
+
+  function applyLcdTheme(theme) {
+    lcdShownTheme = theme;
+    screenMain.dataset.mode = theme.mode;
+    const vars = Object.assign({}, lcdBaseVars, theme.vars);
+    Object.keys(vars).forEach(key => {
+      const value = lcdQuotedVars.includes(key) ? '"' + vars[key] + '"' : vars[key];
+      screenMain.style.setProperty('--' + key, value);
+    });
+  }
+
+  function previewLcdTheme(index) {
+    applyLcdTheme(lcdThemes[index]);
+  }
+
+  function revertLcdTheme() {
+    applyLcdTheme(getSavedLcdTheme());
+  }
+
+  function saveLcdTheme(theme) {
+    lcdSavedThemeId = theme.id;
+    applyLcdTheme(theme);
+    try {
+      localStorage.setItem(lcdThemeStorageKey, theme.id);
+    } catch (error) {
+      // Theme still applies for this session.
+    }
+  }
+
+  applyLcdTheme(lcdShownTheme);
+
+  // --- LCD languages ---
+  const lcdLangStorageKey = 'control-panel-lcd-lang';
+  const lcdRtlLangs = ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'ug', 'yi'];
+  const lcdLanguages = ('af:Afrikaans,sq:Shqip,am:አማርኛ,ar:العربية,hy:Հայերեն,az:Azərbaycan,eu:Euskara,be:Беларуская,bn:বাংলা,bs:Bosanski,bg:Български,my:မြန်မာ,ca:Català,ceb:Cebuano,zh-CN:简体中文,zh-TW:繁體中文,hr:Hrvatski,cs:Čeština,da:Dansk,nl:Nederlands,en:English,eo:Esperanto,et:Eesti,fil:Filipino,fi:Suomi,fr:Français,gl:Galego,ka:ქართული,de:Deutsch,el:Ελληνικά,gu:ગુજરાતી,ht:Kreyòl ayisyen,ha:Hausa,haw:ʻŌlelo Hawaiʻi,he:עברית,hi:हिन्दी,hu:Magyar,is:Íslenska,ig:Igbo,id:Bahasa Indonesia,ga:Gaeilge,it:Italiano,ja:日本語,jv:Basa Jawa,kn:ಕನ್ನಡ,kk:Қазақ,km:ខ្មែរ,rw:Kinyarwanda,ko:한국어,ku:Kurdî,ky:Кыргызча,lo:ລາວ,la:Latina,lv:Latviešu,lt:Lietuvių,lb:Lëtzebuergesch,mk:Македонски,mg:Malagasy,ms:Bahasa Melayu,ml:മലയാളം,mt:Malti,mi:Māori,mr:मराठी,mn:Монгол,ne:नेपाली,no:Norsk,ny:Chichewa,or:ଓଡ଼ିଆ,ps:پښتو,fa:فارسی,pl:Polski,pt:Português,pa:ਪੰਜਾਬੀ,ro:Română,ru:Русский,sm:Gagana Samoa,gd:Gàidhlig,sr:Српски,st:Sesotho,sn:chiShona,sd:سنڌي,si:සිංහල,sk:Slovenčina,sl:Slovenščina,so:Soomaali,es:Español,su:Basa Sunda,sw:Kiswahili,sv:Svenska,tg:Тоҷикӣ,ta:தமிழ்,tt:Татар,te:తెలుగు,th:ไทย,tr:Türkçe,tk:Türkmen,uk:Українська,ur:اردو,ug:ئۇيغۇرچە,uz:Oʻzbek,vi:Tiếng Việt,cy:Cymraeg,fy:Frysk,xh:isiXhosa,yi:ייִדיש,yo:Yorùbá,zu:isiZulu')
+    .split(',').map(entry => ({ code: entry.slice(0, entry.indexOf(':')), name: entry.slice(entry.indexOf(':') + 1) }));
+  // Menu words: STYLES | SETTINGS | EFFECTS | THEMES | LANGUAGE | INBUILT | EXPANSION USER
+  const lcdWords = {
+    en: 'STYLES|SETTINGS|EFFECTS|THEMES|LANGUAGE|INBUILT|EXPANSION USER',
+    es: 'ESTILOS|AJUSTES|EFECTOS|TEMAS|IDIOMA|INTEGRADOS|EXPANSIÓN USUARIO',
+    fr: 'STYLES|RÉGLAGES|EFFETS|THÈMES|LANGUE|INTÉGRÉS|EXPANSION UTILISATEUR',
+    de: 'STILE|EINSTELLUNGEN|EFFEKTE|DESIGNS|SPRACHE|INTERN|ERWEITERUNG BENUTZER',
+    it: 'STILI|IMPOSTAZIONI|EFFETTI|TEMI|LINGUA|INTEGRATI|ESPANSIONE UTENTE',
+    pt: 'ESTILOS|CONFIGURAÇÕES|EFEITOS|TEMAS|IDIOMA|INTEGRADOS|EXPANSÃO DO USUÁRIO',
+    nl: 'STIJLEN|INSTELLINGEN|EFFECTEN|THEMA’S|TAAL|INGEBOUWD|UITBREIDING GEBRUIKER',
+    sv: 'STILAR|INSTÄLLNINGAR|EFFEKTER|TEMAN|SPRÅK|INBYGGDA|EXPANSION ANVÄNDARE',
+    no: 'STILER|INNSTILLINGER|EFFEKTER|TEMAER|SPRÅK|INNEBYGDE|BRUKERUTVIDELSE',
+    da: 'STILE|INDSTILLINGER|EFFEKTER|TEMAER|SPROG|INDBYGGEDE|BRUGERUDVIDELSE',
+    fi: 'TYYLIT|ASETUKSET|EFEKTIT|TEEMAT|KIELI|SISÄÄNRAKENNETUT|KÄYTTÄJÄLAAJENNUS',
+    pl: 'STYLE|USTAWIENIA|EFEKTY|MOTYWY|JĘZYK|WBUDOWANE|ROZSZERZENIE UŻYTKOWNIKA',
+    cs: 'STYLY|NASTAVENÍ|EFEKTY|MOTIVY|JAZYK|VESTAVĚNÉ|ROZŠÍŘENÍ UŽIVATELE',
+    ro: 'STILURI|SETĂRI|EFECTE|TEME|LIMBĂ|INTEGRATE|EXTENSIE UTILIZATOR',
+    hu: 'STÍLUSOK|BEÁLLÍTÁSOK|EFFEKTEK|TÉMÁK|NYELV|BEÉPÍTETT|FELHASZNÁLÓI BŐVÍTÉS',
+    tr: 'STİLLER|AYARLAR|EFEKTLER|TEMALAR|DİL|YERLEŞİK|KULLANICI GENİŞLETMESİ',
+    el: 'ΣΤΥΛ|ΡΥΘΜΙΣΕΙΣ|ΕΦΕ|ΘΕΜΑΤΑ|ΓΛΩΣΣΑ|ΕΝΣΩΜΑΤΩΜΕΝΑ|ΕΠΕΚΤΑΣΗ ΧΡΗΣΤΗ',
+    ru: 'СТИЛИ|НАСТРОЙКИ|ЭФФЕКТЫ|ТЕМЫ|ЯЗЫК|ВСТРОЕННЫЕ|РАСШИРЕНИЕ ПОЛЬЗОВАТЕЛЯ',
+    uk: 'СТИЛІ|НАЛАШТУВАННЯ|ЕФЕКТИ|ТЕМИ|МОВА|ВБУДОВАНІ|РОЗШИРЕННЯ КОРИСТУВАЧА',
+    ar: 'الأنماط|الإعدادات|التأثيرات|السمات|اللغة|مدمجة|توسعة المستخدم',
+    he: 'סגנונות|הגדרות|אפקטים|ערכות נושא|שפה|מובנים|הרחבת משתמש',
+    hi: 'शैलियाँ|सेटिंग्स|प्रभाव|थीम|भाषा|इनबिल्ट|उपयोगकर्ता विस्तार',
+    th: 'สไตล์|การตั้งค่า|เอฟเฟกต์|ธีม|ภาษา|ในตัว|ส่วนขยายผู้ใช้',
+    vi: 'PHONG CÁCH|CÀI ĐẶT|HIỆU ỨNG|GIAO DIỆN|NGÔN NGỮ|TÍCH HỢP|MỞ RỘNG NGƯỜI DÙNG',
+    id: 'GAYA|PENGATURAN|EFEK|TEMA|BAHASA|BAWAAN|EKSPANSI PENGGUNA',
+    'zh-CN': '风格|设置|效果|主题|语言|内置|用户扩展',
+    'zh-TW': '風格|設定|效果|主題|語言|內建|使用者擴充',
+    ja: 'スタイル|設定|エフェクト|テーマ|言語|内蔵|ユーザー拡張',
+    ko: '스타일|설정|이펙트|테마|언어|내장|사용자 확장'
+  };
+  let lcdLangCode = 'en';
+  try {
+    const storedLang = localStorage.getItem(lcdLangStorageKey);
+    if (storedLang && lcdLanguages.some(language => language.code === storedLang)) lcdLangCode = storedLang;
+  } catch (error) {
+    // Default to English when storage is unavailable.
+  }
+  const getLcdWords = () => (lcdWords[lcdLangCode] || lcdWords.en).split('|');
+
+  function applyLcdLanguage(code) {
+    lcdLangCode = code;
+    screenMain.lang = code;
+    screenMain.dir = lcdRtlLangs.includes(code) ? 'rtl' : 'ltr';
+  }
+
+  function saveLcdLanguage(code) {
+    applyLcdLanguage(code);
+    try {
+      localStorage.setItem(lcdLangStorageKey, code);
+    } catch (error) {
+      // Language still applies for this session.
+    }
+  }
+
+  applyLcdLanguage(lcdLangCode);
+
+  const menuPages = {
+    get root() { return getLcdWords().slice(0, 5); },
+    get styles() { return getLcdWords().slice(5, 7); },
+    get languages() { return lcdLanguages.map(language => language.name); },
+    get themes() { return lcdThemes.map(theme => theme.name); }
+  };
+  let menuPage = 'root';
+  let menuIndex = 0;
+  let fileType = 'inbuilt';
+  let filePage = 0;
+  let fileRow = 0;
+  let fileColumn = 0;
+  let userFiles = [];
+  const filesPerPage = 14;
+  function renderLcdMenu() {
+    lcdMenu.dataset.page = menuPage;
+    if (menuPage === 'root') {
+      lcdMenu.classList.add('windows-desktop');
+      lcdMenu.innerHTML =
+        '<div class="lcd-desktop-icons">' +
+        menuPages.root.map((option, index) =>
+          '<button class="lcd-desktop-icon' + (index === menuIndex ? ' selected' : '') + '" type="button" data-desktop-index="' + index + '"><span class="ln">' + (index + 1) + '</span><span><span class="kw">run</span> <span class="fn">' + option + '</span><span class="pn">()</span></span></button>'
+        ).join('') +
+        '</div>' +
+        '<div class="lcd-desktop-taskbar"><button class="lcd-start-button" type="button">' + lcdShownTheme.start + '</button><span class="lcd-taskbar-window">' + lcdShownTheme.win + '</span><span>' + (bpmInput ? bpmInput.value : 120) + lcdShownTheme.end + '</span></div>';
+      return;
+    }
+    lcdMenu.classList.remove('windows-desktop');
+    lcdMenu.innerHTML = menuPages[menuPage].map((option, index) => {
+      let extra = '';
+      if (menuPage === 'languages' && lcdLanguages[index].code === lcdLangCode) option += ' <span class="act">&#10003;</span>';
+      if (menuPage === 'themes') {
+        const theme = lcdThemes[index];
+        const v = Object.assign({}, lcdBaseVars, theme.vars);
+        if (theme.id === lcdSavedThemeId) option += ' <span class="act">&#10003;</span>';
+        extra = '<span class="sw">' + [v.bg, v.kw, v.fn, v.opt].map(color => '<i style="background:' + color + '"></i>').join('') + '</span>';
+      }
+      return '<span class="lcd-option' + (index === menuIndex ? ' selected' : '') + '" data-option-index="' + index + '">' + option + extra + '</span>';
+    }).join('');
+    const selectedOption = lcdMenu.querySelector('.lcd-option.selected');
+    if (selectedOption) {
+      lcdMenu.scrollTop = Math.max(0, selectedOption.offsetTop + selectedOption.offsetHeight - lcdMenu.clientHeight + 24);
+    }
+  }
+
+  function moveMenuSelection(direction) {
+    const optionCount = menuPages[menuPage].length;
+    menuIndex = (menuIndex + direction + optionCount) % optionCount;
+    if (menuPage === 'themes') previewLcdTheme(menuIndex);
+    renderLcdMenu();
+  }
+
+  function openSelectedMenu() {
+    if (menuPage === 'root' && menuIndex === 0) {
+      menuPage = 'styles';
+      menuIndex = 0;
+      renderLcdMenu();
+    } else if (menuPage === 'root' && menuIndex === 3) {
+      menuPage = 'themes';
+      menuIndex = Math.max(0, lcdThemes.findIndex(theme => theme.id === lcdSavedThemeId));
+      renderLcdMenu();
+    } else if (menuPage === 'root' && menuIndex === 4) {
+      menuPage = 'languages';
+      menuIndex = Math.max(0, lcdLanguages.findIndex(language => language.code === lcdLangCode));
+      renderLcdMenu();
+    } else if (menuPage === 'languages') {
+      saveLcdLanguage(lcdLanguages[menuIndex].code);
+      renderLcdMenu();
+    } else if (menuPage === 'themes') {
+      saveLcdTheme(lcdThemes[menuIndex]);
+      renderLcdMenu();
+    } else if (menuPage === 'styles' && menuIndex === 0) {
+      openFileBrowser('inbuilt');
+    } else if (menuPage === 'styles' && menuIndex === 1) {
+      openFileBrowser('user');
+      userFolderInput.click();
+    }
+  }
+
+  document.addEventListener('click', event => {
+    const desktopIcon = event.target.closest('[data-desktop-index]');
+    if (desktopIcon && menuPage === 'root') {
+      menuIndex = Number(desktopIcon.dataset.desktopIndex);
+      openSelectedMenu();
+      return;
+    }
+
+    const optionItem = event.target.closest('.lcd-option[data-option-index]');
+    if (optionItem && menuPage !== 'root') {
+      menuIndex = Number(optionItem.dataset.optionIndex);
+      if (menuPage === 'themes') previewLcdTheme(menuIndex);
+      openSelectedMenu();
+      return;
+    }
+
+  });
+
+  // --- Inbuilt style slots: empty until a style file is imported ---
+  const loadedStyles = {};
+  const lcdImport = document.getElementById('lcdImport');
+  const lcdImportBox = document.getElementById('lcdImportBox');
+  const styleImportInput = document.getElementById('styleImportInput');
+  let importSlot = null;
+  let fileStatusMessage = '';
+
+  const slotLabel = slot => 'FILE ' + String(slot).padStart(3, '0');
+  const selectedSlot = () => filePage * filesPerPage + fileRow * 2 + fileColumn + 1;
+
+  function openImportPrompt(slot) {
+    importSlot = slot;
+    lcdImportBox.innerHTML =
+      '<div class="lcd-import-title">' + slotLabel(slot) + '</div>' +
+      '<div class="lcd-import-text">NOT LOADED. IMPORT STYLE FROM FILES?</div>' +
+      '<div class="lcd-import-keys"><b>ENTER</b> IMPORT &nbsp;&middot;&nbsp; <b>LEFT</b> CANCEL</div>';
+    lcdImport.classList.add('visible');
+  }
+
+  function closeImportPrompt() {
+    importSlot = null;
+    lcdImport.classList.remove('visible');
+  }
+
+  function promptImportIfEmpty() {
+    if (fileType !== 'inbuilt') return;
+    const slot = selectedSlot();
+    if (!loadedStyles[slot]) openImportPrompt(slot);
+  }
+
+  function confirmImport() {
+    if (importSlot === null) return;
+    styleImportInput.dataset.slot = importSlot;
+    closeImportPrompt();
+    styleImportInput.click();
+  }
+
+  styleImportInput.addEventListener('change', () => {
+    const file = styleImportInput.files[0];
+    const slot = Number(styleImportInput.dataset.slot);
+    if (file && slot) {
+      loadedStyles[slot] = { name: file.name.replace(/\.[^/.]+$/, ''), file: file };
+      fileStatusMessage = 'IMPORTED: ' + file.name.toUpperCase();
+      setTimeout(() => {
+        fileStatusMessage = '';
+        if (lcdFiles.classList.contains('visible')) renderFileBrowser();
+      }, 2200);
+      if (lcdFiles.classList.contains('visible')) renderFileBrowser();
+    }
+    styleImportInput.value = '';
+  });
+
+  lcdImport.addEventListener('click', event => {
+    if (event.target === lcdImport) closeImportPrompt();
+  });
+
+  document.addEventListener('keydown', event => {
+    if (importSlot === null) return;
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      confirmImport();
+    } else if (event.key === 'Escape') {
+      closeImportPrompt();
+    }
+  });
+
+  document.addEventListener('click', event => {
+    const fileItem = event.target.closest('.lcd-file[data-index]');
+    if (!fileItem || !lcdFiles.classList.contains('visible')) return;
+    const index = Number(fileItem.dataset.index);
+    fileRow = Math.floor(index / 2);
+    fileColumn = index % 2;
+    renderFileBrowser();
+    promptImportIfEmpty();
+  });
+
+  function openFileBrowser(type, page = 0) {
+    fileType = type;
+    const pageCount = type === 'user' ? Math.max(1, Math.ceil(userFiles.length / filesPerPage)) : 16;
+    filePage = Math.max(0, Math.min(pageCount - 1, page));
+    fileRow = 0;
+    fileColumn = 0;
+    lcdMenu.classList.remove('visible');
+    lcdFiles.classList.add('visible');
+    renderFileBrowser();
+  }
+
+  let filePressTimer = null;
+  let fileRepeatTimer = null;
+  let suppressFileClick = false;
+
+  function stopFileButtonRepeat() {
+    clearTimeout(filePressTimer);
+    clearInterval(fileRepeatTimer);
+    filePressTimer = null;
+    fileRepeatTimer = null;
+  }
+
+  document.addEventListener('pointerdown', event => {
+    const navigationButton = event.target.closest('[data-id="NAV-UP"], [data-id="NAV-DOWN"]');
+    if (!navigationButton || !lcdFiles.classList.contains('visible') || importSlot !== null) return;
+
+    const direction = navigationButton.dataset.id === 'NAV-UP' ? 'up' : 'down';
+    suppressFileClick = false;
+    filePressTimer = setTimeout(() => {
+      suppressFileClick = true;
+      moveFileSelection(direction);
+      fileRepeatTimer = setInterval(() => moveFileSelection(direction), 90);
+    }, 350);
+  });
+
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(eventName => {
+    document.addEventListener(eventName, event => {
+      const navigationButton = event.target.closest('[data-id="NAV-UP"], [data-id="NAV-DOWN"]');
+      if (!navigationButton) return;
+      stopFileButtonRepeat();
+    });
+  });
+
+  document.addEventListener('click', event => {
+    const quickAccessButton = event.target.closest('[data-id^="G-"]');
+    if (!quickAccessButton) return;
+
+    const page = Number(quickAccessButton.dataset.id.slice(2)) - 1;
+    if (Number.isInteger(page)) openFileBrowser('inbuilt', page);
+  });
+
+  function renderFileBrowser() {
+    if (fileType === 'user' && userFiles.length === 0) {
+      lcdFiles.innerHTML = '<div class="lcd-files-status">SELECT A FOLDER TO VIEW FILES</div>';
+      return;
+    }
+
+    const filePrefix = fileType === 'user' ? 'MY FILE ' : 'FILE ';
+    const files = fileType === 'user'
+      ? userFiles.slice(filePage * filesPerPage, filePage * filesPerPage + filesPerPage)
+      : Array.from({ length: filesPerPage }, (_, index) => {
+          const slot = filePage * filesPerPage + index + 1;
+          return loadedStyles[slot] ? loadedStyles[slot].name : filePrefix + String(slot).padStart(3, '0');
+        });
+    const fileMarkup = files.map((file, index) => {
+      const selected = index === fileRow * 2 + fileColumn ? ' selected' : '';
+      const slot = filePage * filesPerPage + index + 1;
+      const state = fileType === 'inbuilt' ? (loadedStyles[slot] ? ' loaded' : ' empty') : '';
+      return '<span class="lcd-file' + selected + state + '" data-index="' + index + '">' + file + '</span>';
+    }).join('');
+    const pageCount = fileType === 'user' ? Math.max(1, Math.ceil(userFiles.length / filesPerPage)) : 16;
+    if (filePage >= pageCount) filePage = pageCount - 1;
+    const pageMarkup = Array.from({ length: pageCount }, (_, index) =>
+      '<span class="lcd-page' + (index === filePage ? ' selected' : '') + '">' + (index + 1) + '</span>'
+    ).join('');
+
+    lcdFiles.innerHTML =
+      '<div class="lcd-files-status">' + (fileStatusMessage || (fileType === 'user' ? 'USER FILES' : 'INBUILT FILES')) + '</div>' +
+      '<div class="lcd-file-grid">' + fileMarkup + '</div>' +
+      '<div class="lcd-page-list">' + pageMarkup + '</div>';
+  }
+
+  userFolderInput.addEventListener('change', () => {
+    userFiles = Array.from(userFolderInput.files, file => file.webkitRelativePath || file.name);
+    userFiles.sort((firstFile, secondFile) => firstFile.localeCompare(secondFile));
+    filePage = 0;
+    fileRow = 0;
+    fileColumn = 0;
+    renderFileBrowser();
+  });
+
+  function moveFileSelection(direction) {
+    const pageCount = fileType === 'user' ? Math.max(1, Math.ceil(userFiles.length / filesPerPage)) : 16;
+    if (direction === 'up') fileRow = Math.max(0, fileRow - 1);
+    if (direction === 'down') {
+      if (fileRow < 6) {
+        fileRow += 1;
+      } else if (fileColumn === 0) {
+        fileColumn = 1;
+        fileRow = 0;
+      } else if (filePage < pageCount - 1) {
+        filePage += 1;
+        fileColumn = 0;
+        fileRow = 0;
+      }
+    }
+    if (direction === 'left') {
+      if (fileColumn === 1) fileColumn = 0;
+      else if (filePage > 0) {
+        filePage -= 1;
+        fileColumn = 1;
+      }
+    }
+    if (direction === 'right') {
+      if (fileColumn === 0) fileColumn = 1;
+      else if (filePage < pageCount - 1) {
+        filePage += 1;
+        fileColumn = 0;
+      }
+    }
+    renderFileBrowser();
+  }
+
+  document.addEventListener('click', event => {
+    const navigationButton = event.target.closest('[data-id^="NAV-"]');
+    if (!navigationButton) return;
+
+    const navigationId = navigationButton.dataset.id;
+    if (importSlot !== null) {
+      if (navigationId === 'NAV-ENTER') confirmImport();
+      else if (navigationId === 'NAV-LEFT') closeImportPrompt();
+      return;
+    }
+    if (lcdFiles.classList.contains('visible')) {
+      if ((navigationId === 'NAV-UP' || navigationId === 'NAV-DOWN') && suppressFileClick) {
+        suppressFileClick = false;
+        return;
+      }
+      if (navigationId === 'NAV-UP') moveFileSelection('up');
+      if (navigationId === 'NAV-DOWN') moveFileSelection('down');
+      if (navigationId === 'NAV-LEFT') moveFileSelection('left');
+      if (navigationId === 'NAV-RIGHT') moveFileSelection('right');
+      if (navigationId === 'NAV-ENTER') promptImportIfEmpty();
+      if (navigationId === 'NAV-LEFT' && filePage === 0 && fileColumn === 0 && fileRow === 0) {
+        lcdFiles.classList.remove('visible');
+        lcdMenu.classList.add('visible');
+        menuPage = 'styles';
+        menuIndex = 0;
+        renderLcdMenu();
+      }
+      return;
+    }
+    if (!lcdMenu.classList.contains('visible')) return;
+
+    if (navigationId === 'NAV-UP') moveMenuSelection(-1);
+    if (navigationId === 'NAV-DOWN') moveMenuSelection(1);
+    if (navigationId === 'NAV-ENTER' || navigationId === 'NAV-RIGHT') openSelectedMenu();
+    if (navigationId === 'NAV-LEFT' && menuPage !== 'root') {
+      if (menuPage === 'themes') revertLcdTheme();
+      menuIndex = menuPage === 'themes' ? 3 : (menuPage === 'languages' ? 4 : 0);
+      menuPage = 'root';
+      renderLcdMenu();
+    }
+  });
+
+  const bpmInput = document.getElementById('bpm');
+  let activeComponent = null;
+  let masterVolume = 100;
+  const componentVolumes = {
+    'VOL-1': 100,
+    'VOL-2': 100,
+    'VOL-3': 100,
+    'VOL-4': 100,
+    'VOL-5': 100,
+    'VOL-6': 100
+  };
+
+  function showRootMenu() {
+    closeImportPrompt();
+    revertLcdTheme();
+    activeComponent = null;
+    lcdFiles.classList.remove('visible');
+    lcdTempo.classList.remove('visible');
+    lcdMenu.classList.add('visible');
+    menuPage = 'root';
+    menuIndex = 0;
+    renderLcdMenu();
+  }
+
+  function showTempoStatus() {
+    activeComponent = 'TEMPO';
+    lcdTempo.classList.add('visible');
+    lcdTempo.innerHTML =
+      '<span>TEMPO</span>' +
+      '<span class="lcd-tempo-value" id="lcdTempoValue">' + bpmInput.value + ' BPM</span>' +
+      '<span class="lcd-tempo-hint">- / + TO CHANGE, ENTER TO CONFIRM</span>';
+  }
+
+  function showComponentStatus(component) {
+    activeComponent = component;
+    lcdTempo.classList.add('visible');
+    const value = component === 'MASTER' ? masterVolume : componentVolumes[component];
+    lcdTempo.innerHTML =
+      '<span>' + (component === 'MASTER' ? 'MASTER VOLUME' : 'VOLUME ' + component.slice(4)) + '</span>' +
+      '<span class="lcd-tempo-value" id="lcdTempoValue">' + value + '%</span>' +
+      '<span class="lcd-tempo-hint">- / + TO CHANGE, ENTER TO CONFIRM</span>';
+  }
+
+  function changeTempo(amount) {
+    const nextBpm = Math.max(20, Math.min(300, (Number(bpmInput.value) || 120) + amount));
+    bpmInput.value = nextBpm;
+    bpmInput.dispatchEvent(new Event('input', { bubbles: true }));
+    lcdTempo.querySelector('.lcd-tempo-value').textContent = nextBpm + ' BPM';
+  }
+
+  document.querySelector('.tempo-col').addEventListener('click', showTempoStatus);
+
+  document.addEventListener('click', event => {
+    const masterButton = event.target.closest('[data-id="MASTER"]');
+    const volumeButton = event.target.closest('[data-id^="VOL-"]');
+    if (masterButton) showComponentStatus('MASTER');
+    if (volumeButton) showComponentStatus(volumeButton.dataset.id);
+  });
+
+  document.addEventListener('click', event => {
+    const componentButton = event.target.closest('[data-id="NAV2-LEFT"], [data-id="NAV2-ENTER"], [data-id="NAV2-RIGHT"]');
+    if (!componentButton || !activeComponent) return;
+
+    if (componentButton.dataset.id === 'NAV2-ENTER') {
+      lcdTempo.classList.add('visible');
+      return;
+    }
+
+    const amount = componentButton.dataset.id === 'NAV2-RIGHT' ? 1 : -1;
+    if (activeComponent === 'TEMPO') {
+      changeTempo(amount);
+    } else if (activeComponent === 'MASTER') {
+      masterVolume = Math.max(0, Math.min(100, masterVolume + amount));
+      showComponentStatus('MASTER');
+    } else {
+      componentVolumes[activeComponent] = Math.max(0, Math.min(100, componentVolumes[activeComponent] + amount));
+      showComponentStatus(activeComponent);
+    }
+  });
+
+  const toggleGroupIds = [
+    'cmRow', 'introRow', 'variationRow', 'breakRow', 'endingRow',
+    'syncroRow', 'regRow', 'padRow', 'stopRow', 'percussionRow', 'percussionRow2', 'volumeKnobs',
+    'gridRow1', 'gridRow2'
+  ];
+  const groups = toggleGroupIds.map(id => document.getElementById(id));
+
+  function setBeatDuration() {
+    const bpm = Math.max(20, Math.min(300, Number(bpmInput.value) || 120));
+    const seconds = 60 / bpm;
+    document.documentElement.style.setProperty('--beat-duration', seconds + 's');
+  }
+
+  function restartBulbAnimations() {
+    document.querySelectorAll('.btn.active .bulb').forEach(bulb => {
+      bulb.style.animation = 'none';
+      void bulb.offsetWidth;
+      bulb.style.animation = '';
+    });
+  }
+
+  // INTRO, MAIN VARIATION and ENDING share one group: only one bulb lights across all three.
+  const linkedRowIds = ['introRow', 'variationRow', 'endingRow'];
+  const groupSets = toggleGroupIds.filter(id => !linkedRowIds.includes(id)).map(id => [id]);
+  groupSets.push(linkedRowIds);
+  groupSets.forEach(ids => {
+    const groupButtons = ids.flatMap(id => Array.from(document.getElementById(id).querySelectorAll('.btn')));
+    groupButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        groupButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        restartBulbAnimations();
+      });
+    });
+  });
+
+  bpmInput.addEventListener('input', () => {
+    setBeatDuration();
+    restartBulbAnimations();
+  });
+
+  setBeatDuration();
+
+  // --- Page bounds marker: 2px above LCD, 2px left of TEMPO, 2px right of MUTE, 2px below bottom panel ---
+  const deviceEl2 = document.querySelector('.device');
+  const pageBoundsEl = document.getElementById('pageBounds');
+
+  function drawPageBounds() {
+    const screenFrame = document.querySelector('.screen-frame');
+    const tempoPanel = document.querySelector('.left-side-panels .panel-box:first-child');
+    const mutePanel = document.querySelectorAll('.right-side-panels > .panel-box')[0];
+    const bottomPanel = document.querySelector('.device > .panel');
+
+    if (!screenFrame || !tempoPanel || !mutePanel || !bottomPanel) return;
+
+    const dr = deviceEl2.getBoundingClientRect();
+    const scale = dr.width / deviceEl2.offsetWidth || 1;
+
+    const sfRect = screenFrame.getBoundingClientRect();
+    const tpRect = tempoPanel.getBoundingClientRect();
+    const mpRect = mutePanel.getBoundingClientRect();
+    const bpRect = bottomPanel.getBoundingClientRect();
+
+    const topPx = (sfRect.top - dr.top) / scale - 2;
+    const leftPx = (tpRect.left - dr.left) / scale - 2;
+    const rightPx = (mpRect.right - dr.left) / scale + 2;
+    const bottomPx = (bpRect.bottom - dr.top) / scale + 2;
+
+    pageBoundsEl.style.top = topPx + 'px';
+    pageBoundsEl.style.left = leftPx + 'px';
+    pageBoundsEl.style.width = (rightPx - leftPx) + 'px';
+    pageBoundsEl.style.height = (bottomPx - topPx) + 'px';
+  }
+
+  function drawTempoGuide() {
+    const minusButton = document.querySelector('[data-id="NAV2-LEFT"]');
+    const tempoTap = document.querySelector('[data-id="TEMPO-TAP"]');
+    const guideHorizontal = document.getElementById('tempoGuideHorizontal');
+    const guideVertical = document.getElementById('tempoGuideVertical');
+    const masterButton = document.querySelector('[data-id="MASTER"]');
+    const volumeControl = document.querySelector('.volume-block');
+    const masterHorizontal = document.getElementById('masterGuideHorizontal');
+    const masterVertical = document.getElementById('masterGuideVertical');
+    const tempoVolumeGuide = document.getElementById('tempoVolumeGuide');
+    const tempoXVertical = document.getElementById('tempoXVertical');
+    const tempoXHorizontal = document.getElementById('tempoXHorizontal');
+    const xButton = document.querySelector('[data-id="VOL-1"]');
+    const navigationRight = document.querySelector('[data-id="NAV-RIGHT"]');
+    const menuButton = document.querySelector('[data-id="PERC-MENU2"]');
+    const menuGuideHorizontal = document.getElementById('menuGuideHorizontal');
+    const menuGuideVertical = document.getElementById('menuGuideVertical');
+    if (!minusButton || !tempoTap || !guideHorizontal || !guideVertical || !masterButton || !volumeControl || !tempoVolumeGuide || !tempoXVertical || !tempoXHorizontal || !xButton || !navigationRight || !menuButton || !menuGuideHorizontal || !menuGuideVertical) return;
+
+    const deviceRect = deviceEl2.getBoundingClientRect();
+    const scale = deviceRect.width / deviceEl2.offsetWidth || 1;
+    const minusRect = minusButton.getBoundingClientRect();
+    const tempoRect = tempoTap.getBoundingClientRect();
+    const startX = (minusRect.left + minusRect.width / 2 - deviceRect.left) / scale;
+    const startY = (minusRect.top + minusRect.height / 2 - deviceRect.top) / scale;
+    const endX = (tempoRect.left + tempoRect.width / 2 - deviceRect.left) / scale;
+    const endY = (tempoRect.top + tempoRect.height / 2 - deviceRect.top) / scale;
+    const horizontalLeft = Math.min(startX, endX);
+
+    guideHorizontal.style.left = horizontalLeft + 'px';
+    guideHorizontal.style.top = startY + 'px';
+    guideHorizontal.style.width = Math.abs(endX - startX) + 'px';
+    guideVertical.style.left = endX + 'px';
+    guideVertical.style.top = Math.min(startY, endY) + 'px';
+    guideVertical.style.height = Math.abs(endY - startY) + 'px';
+
+    function drawBranch(target, horizontal, vertical, originX = startX, originY = startY) {
+      const targetRect = target.getBoundingClientRect();
+      const targetX = (targetRect.left + targetRect.width / 2 - deviceRect.left) / scale;
+      const targetY = (targetRect.top + targetRect.height / 2 - deviceRect.top) / scale;
+      horizontal.style.left = Math.min(originX, targetX) + 'px';
+      horizontal.style.top = originY + 'px';
+      horizontal.style.width = Math.abs(targetX - originX) + 'px';
+      vertical.style.left = targetX + 'px';
+      vertical.style.top = Math.min(originY, targetY) + 'px';
+      vertical.style.height = Math.abs(targetY - originY) + 'px';
+    }
+
+    drawBranch(masterButton, masterHorizontal, masterVertical);
+
+    const volumeRect = volumeControl.getBoundingClientRect();
+    const volumeX = (volumeRect.left - deviceRect.left) / scale;
+    tempoVolumeGuide.style.left = Math.min(endX, volumeX) + 'px';
+    tempoVolumeGuide.style.top = endY + 'px';
+    tempoVolumeGuide.style.width = Math.abs(volumeX - endX) + 'px';
+
+    const xRect = xButton.getBoundingClientRect();
+    const xCenter = (xRect.left + xRect.width / 2 - deviceRect.left) / scale;
+    const xCenterY = (xRect.top + xRect.height / 2 - deviceRect.top) / scale;
+    tempoXVertical.style.left = endX + 'px';
+    tempoXVertical.style.top = Math.min(endY, xCenterY) + 'px';
+    tempoXVertical.style.height = Math.abs(xCenterY - endY) + 'px';
+    tempoXHorizontal.style.left = Math.min(endX, xCenter) + 'px';
+    tempoXHorizontal.style.top = xCenterY + 'px';
+    tempoXHorizontal.style.width = Math.abs(xCenter - endX) + 'px';
+
+    const navigationRect = navigationRight.getBoundingClientRect();
+    const menuRect = menuButton.getBoundingClientRect();
+    const navigationX = (navigationRect.left + navigationRect.width / 2 - deviceRect.left) / scale;
+    const navigationY = (navigationRect.top + navigationRect.height / 2 - deviceRect.top) / scale;
+    const menuX = (menuRect.left + menuRect.width / 2 - deviceRect.left) / scale;
+    const menuY = (menuRect.top + menuRect.height / 2 - deviceRect.top) / scale;
+    menuGuideHorizontal.style.left = Math.min(navigationX, menuX) + 'px';
+    menuGuideHorizontal.style.top = navigationY + 'px';
+    menuGuideHorizontal.style.width = Math.abs(menuX - navigationX) + 'px';
+    menuGuideVertical.style.left = menuX + 'px';
+    menuGuideVertical.style.top = Math.min(navigationY, menuY) + 'px';
+    menuGuideVertical.style.height = Math.abs(menuY - navigationY) + 'px';
+
+  }
+
+  window.addEventListener('load', drawPageBounds);
+  window.addEventListener('resize', drawPageBounds);
+  window.addEventListener('load', drawTempoGuide);
+  window.addEventListener('resize', drawTempoGuide);
+  setTimeout(drawPageBounds, 50);
+  setTimeout(drawTempoGuide, 50);
+</script>
+
+</body>
+</html>
